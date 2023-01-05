@@ -69,7 +69,7 @@ class Router {
                 if (!pages.includes(`${this.SETTINGS.ERROR_PAGE}${this.SETTINGS.HTML_FT}`)) return;
                 htmlPage = (await fs.readFile(`./${this.SETTINGS.PAGES_DIR}/${this.SETTINGS.ERROR_PAGE}${this.SETTINGS.HTML_FT}`)).toString();
             } else {
-                if (Object.keys(this.cache).includes(route)) {
+                if (Object.keys(this.cache).includes(route) && this.SETTINGS.CLEAR_CACHE_TIMING > 0) {
                     htmlPage = this.cache[route];
                 } else {
                     route = subRoutes.includes(route + this.SETTINGS.HTML_FT) ? route.replace(/\//g, '+') : route;
@@ -77,7 +77,7 @@ class Router {
                 }
             }
 
-            if (!Object.keys(this.cache).includes(route)) {
+            if (!Object.keys(this.cache).includes(route) || this.SETTINGS.CLEAR_CACHE_TIMING <= 0) {
                 let css = await this.#getCSS(htmlPage);
                 if (css) htmlPage = htmlPage.replace(regx.CSS_REGX, css).trim();
 
@@ -93,8 +93,10 @@ class Router {
                     });
                 }
 
-                this.cache[route] = htmlPage;
-                setTimeout(() => delete this.cache[route], this.SETTINGS.CLEAR_CACHE_TIMING * 1000);
+                if (this.SETTINGS.CLEAR_CACHE_TIMING > 0) {
+                    this.cache[route] = htmlPage;
+                    setTimeout(() => delete this.cache[route], this.SETTINGS.CLEAR_CACHE_TIMING * 1000);
+                }
             }
 
             res.end(htmlPage);

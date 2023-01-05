@@ -1,5 +1,6 @@
 const fs = require('fs/promises');
 const http = require('http');
+const Events = require('events');
 
 const regx = {
     CSS_REGX: /\/\*( +|)+\[([ a-zA-Z0-9,"]+|)]( +|)\*\//g,
@@ -9,7 +10,8 @@ const regx = {
     EXTRACT_VAR: /([<!\-\-\/\*]+variable.)|([\-\->\*\/])/g // /*variable.name*/ => name
 }
 
-class Router {
+class Router extends Events {
+
     SETTINGS = {
         PORT: "",
         ERROR_PAGE: "",
@@ -22,6 +24,8 @@ class Router {
         DEFAULT_SCRIPT: "",
         CLEAR_CACHE_TIMING: "" // clears cache after certain time
     }
+
+    variable = {};
 
     cache = {} // stores html pages
 
@@ -38,8 +42,10 @@ class Router {
             defaultScript: 'script.js',
             htmlFt: '.html',
             clearCache: 10 // seconds
-        }
+        },
+        variable
     ) {
+        super();
         this.SETTINGS.PORT = port;
         this.SETTINGS.ERROR_PAGE = settings.errorPage;
         this.SETTINGS.PAGES_DIR = settings.pagesDir;
@@ -50,12 +56,16 @@ class Router {
         this.SETTINGS.DEFAULT_STYLE = settings.defaultStyle;
         this.SETTINGS.DEFAULT_SCRIPT = settings.defaultScript;
         this.SETTINGS.CLEAR_CACHE_TIMING = settings.clearCache;
+        this.variable = variable
     }
 
-    start = (variable) => {
+    start = () => {
         http.createServer(async (req, res) => {
             let pages = await fs.readdir(`./${this.SETTINGS.PAGES_DIR}`);
             let route = req.url == '/' ? this.SETTINGS.HOME_PAGE : req.url.replace(regx.URL_REGX, '');
+
+            if (route == 'favicon.ico') return;
+            this.emit('get', req, res);
 
             let subRoutes = [];
             pages = pages.map(page => {
@@ -87,7 +97,7 @@ class Router {
                 if (regx.EMBEDED_VARS.test(htmlPage)) {
                     htmlPage = htmlPage.replace(regx.EMBEDED_VARS, (match, _) => {
                         let dataVar = match.replace(regx.EXTRACT_VAR, '');
-                        dataVar = variable[dataVar];
+                        dataVar = this.variable[dataVar];
                         if (!dataVar) return match;
                         else return dataVar;
                     });
@@ -98,7 +108,7 @@ class Router {
                     setTimeout(() => delete this.cache[route], this.SETTINGS.CLEAR_CACHE_TIMING * 1000);
                 }
             }
-
+            this.emit('page', route, htmlPage)
             res.end(htmlPage);
         }).listen(this.SETTINGS.PORT)
         console.log(`[LISTENING ON PORT: ${this.SETTINGS.PORT}]`);

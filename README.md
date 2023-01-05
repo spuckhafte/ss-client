@@ -13,6 +13,10 @@ It comes with a built-in cache system and a simple way to include CSS and JavaSc
 6. Support for embedding variables in HTML pages
 
 ## Usage
+```bash
+npm i simple-static-router
+```
+
 First, create an instance of the Router class by providing a port number and optional settings.<br>
 The default settings are:
 ```js
@@ -30,7 +34,7 @@ The default settings are:
 ```
 For Example:
 ```js
-const Router = require('ss-router')
+const Router = require('simple-static-router');
 const router = new Router(3000);
 ```
 To start the server, call the start method of the Router instance:
@@ -74,6 +78,23 @@ For example, if you want to create a route at `/about/team`, you would create a 
 In addition to the `pages` directory, you can also create a `styles` and `scripts` directory to store your CSS and JavaScript files, respectively.<br>
 These will be automatically included in your HTML pages when you use the provided syntax.
 
+## Events
+Two events get called on the router instance, one immediately when a request is recieved and the other when the html is being sent back as response;
+```js
+router.on('get', (req, res) {
+  // ...idk, change some variable value for a specific route ig, idk
+})
+
+router.on('page', (route, htmlPage) {
+  // ...idk, no clue
+})
+```
+`get` event gets called immediately on recieving a request.<br>
+`page` event gets called afterwards (nanosecs later), when the processing is done and page is being sent.<br>
+
+`get` can be used to modify/process some values before rendering a route.<br>
+`page` can be used to play with the actual html or route after the page is sent.
+
 ## HTML Page Structure
 To specify styles and scripts in an HTML page, use the following syntax:<br>
 For styles:
@@ -100,11 +121,11 @@ OR, for default script only ("script.js"):
 ```
 
 ### Embed variables
-Define them in the `start` method:
+Define them in the `variable` propery of the Router:
 ```js
-router.start({
+router.variable = {
   name: "SS-Client"
-})
+}
 ```
 
 Refer to them as `variable.name`.<br>
